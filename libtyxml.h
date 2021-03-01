@@ -19,23 +19,14 @@ enum TXEvent {
 struct TXParser {
 	enum TXEvent event;
 	FILE *file;
-	_Bool in_cdata; /* I hate CDATA. What is it even for? */
-	_Bool in_quotes;
+	_Bool in_cdata;
 	int prev_1;
 	int prev_2;
 };
 
-/* This function will progress the parser until an event is emitted.
- * The parser's position is persistent state.
- */
-void tx_advance(struct TXParser *parser);
+char *tx_advance(struct TXParser *parser, const _Bool capture);
 
 void tx_advance_until(struct TXParser *parser, enum TXEvent event, const char **keys);
-
-/* This function is similar to tx_advance(), but it will copy the text it sees in attribute or tag.
- * The caller is responsible for freeing the returned string.
- */
-char *tx_capture(struct TXParser *parser);
 
 /* This function initializes a parser.
  * The caller is responsible for freeing the file as usual in addition to the returned struct.

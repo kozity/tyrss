@@ -23,15 +23,16 @@
 
 /* these should be null-terminated for easy looping */
 static const char *keys_content[]    = { "contents", "description", NULL }; /* TODO: check if "contents" is correct */
-static const char *keys_date[]       = { "pubDate", "published", "updated", "lastBuildDate", "date", NULL };
+static const char *keys_date[]       = { "pubDate", "published", "updated", "lastBuildDate", "dc:date", NULL };
 static const char *keys_entry[]      = { "entry", "item", NULL };
-static const char *keys_link_entry[] = { "enclosure", "link", NULL };
+static const char *keys_link_entry[] = { "enclosure", "href", NULL };
 static const char *keys_link_web[]   = { "htmlUrl", NULL };
 static const char *keys_link_xml[]   = { "xmlUrl", NULL };
 static const char *keys_outline[]    = { "outline", NULL };
 static const char *keys_title[]      = { "title", NULL };
 
-_Bool entry_print_from_keys(const char *feed_key, int entry_index, const char **keys);
+_Bool entry_print_content(const char *feed_key, int entry_index);
+_Bool entry_print_link(const char *feed_key, int entry_index);
 _Bool feed_print_entries(const char *feed_key);
 _Bool feed_print_link(const char *feed_key);
 _Bool feeds_print(void);

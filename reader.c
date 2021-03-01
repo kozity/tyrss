@@ -7,7 +7,7 @@
 
 #include "reader.h"
 
-_Bool entry_print_from_keys(const char *feed_key, int entry_index, const char **keys) {
+_Bool entry_print_content(const char *feed_key, int entry_index) {
 	_Bool error_occurred = 0;
 	char *title = opml_get_title(feed_key);
 	struct TXParser *feed_parser;
@@ -20,8 +20,40 @@ _Bool entry_print_from_keys(const char *feed_key, int entry_index, const char **
 			fprintf(stderr, "error: entry index out of bounds\n");
 			error_occurred = 1;
 		} else {
-			tx_advance_until(feed_parser, TAG_START, keys);
-			char *val = tx_capture(feed_parser);
+			tx_advance_until(feed_parser, TAG_START, keys_content);
+			char *val = tx_advance(feed_parser, 1);
+			printf("%s\n", val);
+			free(val);
+		}
+		tx_free(feed_parser);
+	} else {
+		error_occurred = 1;
+	}
+	return error_occurred;
+}
+
+_Bool entry_print_link(const char *feed_key, int entry_index) {
+	_Bool error_occurred = 0;
+	char *title = opml_get_title(feed_key);
+	struct TXParser *feed_parser;
+	if ((title = opml_get_title(feed_key)) != NULL
+			&& (feed_parser = parser_init_feed(title)) != NULL) {
+		free(title);
+		for (; entry_index >= 0; entry_index--)
+			tx_advance_until(feed_parser, TAG_START, keys_entry);
+		if (feed_parser->event == FILE_END) {
+			fprintf(stderr, "error: entry index out of bounds\n");
+			error_occurred = 1;
+		} else {
+			char *val;
+			const char *key_link[] = { "link", NULL };
+			tx_advance_until(feed_parser, TAG_START, key_link);
+			if (feed_parser->event == TAG_END) {
+				val = tx_advance(feed_parser, 1);
+			} else {
+				tx_advance_until(feed_parser, ATTR_START, keys_link_entry);
+				val = tx_advance(feed_parser, 1);
+			}
 			printf("%s\n", val);
 			free(val);
 		}
@@ -47,9 +79,11 @@ _Bool feed_print_entries(const char *feed_key) {
 			if (feed_parser->event == FILE_END)
 				break;
 			tx_advance_until(feed_parser, TAG_START, keys_title);
-			char *title = tx_capture(feed_parser);
+			while (feed_parser->event != TAG_END)
+				tx_advance(feed_parser, 0);
+			char *title = tx_advance(feed_parser, 1);
 			tx_advance_until(feed_parser, TAG_START, keys_date);
-			char *date_in = tx_capture(feed_parser);
+			char *date_in = tx_advance(feed_parser, 1);
 			char *date_out = format_date(date_in);
 			printf("%d\t%s\t%s\n", i++, date_out, title);
 			free(date_in);
@@ -69,7 +103,7 @@ _Bool feed_print_link(const char *feed_key) {
 	if (parser != NULL && opml_advance_to_title(parser, feed_key) == 0) {
 		tx_advance_until(parser, ATTR_START, keys_link_web);
 		if (parser->event != FILE_END) {
-			char *url = tx_capture(parser);
+			char *url = tx_advance(parser, 1);
 			printf("%s\n", url);
 			free(url);
 		} else {
@@ -93,13 +127,13 @@ _Bool feeds_print(void) {
 			if (parser->event == FILE_END)
 				break;
 			tx_advance_until(parser, ATTR_START, keys_title);
-			char *title = tx_capture(parser);
+			char *title = tx_advance(parser, 1);
 			struct TXParser *feed_parser = parser_init_feed(title);
 			if (feed_parser != NULL) {
 				/* print date and title for each feed */
 				tx_advance_until(feed_parser, TAG_START, keys_entry);
 				tx_advance_until(feed_parser, TAG_START, keys_date);
-				char *date_in = tx_capture(feed_parser);
+				char *date_in = tx_advance(feed_parser, 1);
 				char *date_out = format_date(date_in);
 				printf("%s\t%s\n", date_out, title);
 				free(date_in);
@@ -128,9 +162,9 @@ _Bool feeds_update(void) {
 				break;
 			}
 			tx_advance_until(parser, ATTR_START, keys_title);
-			char *title = tx_capture(parser);
+			char *title = tx_advance(parser, 1);
 			tx_advance_until(parser, ATTR_START, keys_link_xml);
-			char *url = tx_capture(parser);
+			char *url = tx_advance(parser, 1);
 			FILE *f = fopen(title, "w");
 			if (f != NULL) {
 				/* use libcurl to write the file */
@@ -242,7 +276,7 @@ _Bool opml_advance_to_title(struct TXParser *parser, const char *key) {
 		/* test outlines against key */
 		tx_advance_until(parser, TAG_START, keys_outline);
 		tx_advance_until(parser, ATTR_START, keys_title);
-		title = tx_capture(parser);
+		title = tx_advance(parser, 1);
 		if (strstr(title, key) != NULL)
 			break;
 		free(title);
@@ -266,7 +300,7 @@ char *opml_get_title(const char *key) {
 		if (parser->event == FILE_END)
 			break;
 		tx_advance_until(parser, ATTR_START, keys_title);
-		title = tx_capture(parser);
+		title = tx_advance(parser, 1);
 		if (strstr(title, key) != NULL) {
 			break;
 		} else {
@@ -305,9 +339,9 @@ int main(int argc, char *argv[]) {
 				break;
 			case 4:
 				if (strcmp(argv[1], "link") == 0)
-					error_occurred = entry_print_from_keys(argv[2], atoi(argv[3]), keys_link_entry);
+					error_occurred = entry_print_link(argv[2], atoi(argv[3]));
 				else if (strcmp(argv[1], "content") == 0)
-					error_occurred = entry_print_from_keys(argv[2], atoi(argv[3]), keys_content);
+					error_occurred = entry_print_content(argv[2], atoi(argv[3]));
 				else
 					invalid_args = 1;
 				break;
