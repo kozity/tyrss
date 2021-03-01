@@ -1,4 +1,4 @@
-dir_install = /usr/local/src
+dir_install = /usr/local/bin
 name_exec = rss
 source = libtyxml.h reader.h libtyxml.c reader.c
 
