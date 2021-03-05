@@ -5,7 +5,7 @@
 /*------BEGIN USER CONFIG------*/
 
 /* directory used for caching feeds */
-#define PATH_CACHE "/home/ty/.cache/rss/"
+#define PATH_CACHE "/home/ty/.local/share/rss/"
 
 /* OPML file defining feeds to get */
 /* NOTE: most browsers can redirect links that erroneously contain "www." at the beginning. libcurl cannot, so be sure that the URLs you put here are correct. */
