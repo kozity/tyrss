@@ -20,6 +20,7 @@ struct TXParser {
 	enum TXEvent event;
 	FILE *file;
 	_Bool in_cdata;
+	_Bool in_comment;
 	int prev_1;
 	int prev_2;
 };

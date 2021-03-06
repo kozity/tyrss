@@ -139,15 +139,37 @@ char *tx_advance(struct TXParser *parser, const _Bool capture) {
 					if (capture)
 						buffer[i++] = c;
 					continue;
+				} else if (parser->in_comment) {
+					if (c == '-') {
+						parser->prev_2 = fgetc(parser->file);
+						parser->prev_1 = fgetc(parser->file);
+						if (parser->prev_2 == '-' && parser->prev_1 == '>') {
+							parser->in_comment = 0;
+							parser->prev_2 = '\0';
+							parser->prev_1 = '\0';
+						}
+					}
+					continue;
 				} else if (c == '<') {
-					/* check for CDATA: <![CDATA[...]]> */
-					if ((parser->prev_1 = fgetc(parser->file)) == '!') {
-						parser->in_cdata = 1;
-						/* eat remainder of opening delimiter */
-						for (char i = 0; i < 7; i++)
+					parser->prev_2 = fgetc(parser->file);
+					parser->prev_1 = fgetc(parser->file);
+					if (parser->prev_2 == '!') {
+						if (parser->prev_1 == '[') { /* check for CDATA: <![CDATA[...]]> */
+							parser->in_cdata = 1;
+							/* eat remainder of opening delimiter */
+							for (char i = 0; i < 6; i++)
+								fgetc(parser->file);
+							parser->prev_1 = '\0';
+							parser->prev_2 = '\0';
+							continue;
+						} else if (parser->prev_1 == '-') {	/* check for comment: <!--...--> */
+							parser->in_comment = 1;
+							/* eat remainder of opening delimiter */
 							fgetc(parser->file);
-						parser->prev_1 = '\0';
-						continue;
+							parser->prev_1 = '\0';
+							parser->prev_2 = '\0';
+							continue;
+						}
 					} else {
 						parser->event = TAG_START;
 						return buffer;
@@ -199,6 +221,7 @@ struct TXParser *tx_init(FILE *file) {
 	parser->event = FILE_BEGIN;
 	parser->file = file;
 	parser->in_cdata = 0;
+	parser->in_comment = 0;
 	parser->prev_1 = '\0';
 	parser->prev_2 = '\0';
 	return parser;
