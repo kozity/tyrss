@@ -5,3 +5,4 @@ I'm Ty. This is my personal RSS reader. I got frustrated with libxml2, so I wrot
 ## TODO
 - [ ] make parser play nice with XML comments
 - [ ] add tag/label functionality
+- [ ] find the segfault: `rss content atlantic 0`

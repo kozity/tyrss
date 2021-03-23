@@ -25,7 +25,6 @@
 static const char *keys_content[]    = { "contents", "description", NULL }; /* TODO: check if "contents" is correct */
 static const char *keys_date[]       = { "pubDate", "published", "updated", "lastBuildDate", "dc:date", NULL };
 static const char *keys_entry[]      = { "entry", "item", NULL };
-static const char *keys_link_entry[] = { "enclosure", "href", NULL };
 static const char *keys_link_web[]   = { "htmlUrl", NULL };
 static const char *keys_link_xml[]   = { "xmlUrl", NULL };
 static const char *keys_outline[]    = { "outline", NULL };

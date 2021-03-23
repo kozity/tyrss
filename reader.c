@@ -32,35 +32,66 @@ _Bool entry_print_content(const char *feed_key, int entry_index) {
 	return error_occurred;
 }
 
+// TODO: fix returning nested links, i.e. for an embedded image.
+// TODO: fix nprupfirst returning the same image link no matter what.
 _Bool entry_print_link(const char *feed_key, int entry_index) {
 	_Bool error_occurred = 0;
 	char *title = opml_get_title(feed_key);
 	struct TXParser *feed_parser;
 	if ((title = opml_get_title(feed_key)) != NULL
 			&& (feed_parser = parser_init_feed(title)) != NULL) {
-		free(title);
 		for (; entry_index >= 0; entry_index--)
 			tx_advance_until(feed_parser, TAG_START, keys_entry);
 		if (feed_parser->event == FILE_END) {
 			fprintf(stderr, "error: entry index out of bounds\n");
 			error_occurred = 1;
 		} else {
-			char *val;
-			const char *key_link[] = { "link", NULL };
-			tx_advance_until(feed_parser, TAG_START, key_link);
-			if (feed_parser->event == TAG_END) {
-				val = tx_advance(feed_parser, 1);
-			} else {
-				tx_advance_until(feed_parser, ATTR_START, keys_link_entry);
-				val = tx_advance(feed_parser, 1);
+			char *val = NULL;
+			char *tag_name;
+			while (1) {
+				while (feed_parser->event != TAG_START)
+					tx_advance(feed_parser, 0);
+				tag_name = tx_advance(feed_parser, 1);
+				if (strcmp(tag_name, "/item") == 0 || strcmp(tag_name, "/entry") == 0) {
+					break;
+				} else if (strcmp(tag_name, "link") == 0) {
+					if (val != NULL)
+						continue;
+					// Check for "href" attribute. If the attribute isn't found, get inner content.
+					char *attr_name = NULL;
+					while (val == NULL) {
+						while (feed_parser->event != ATTR_START && feed_parser->event != TAG_END)
+							tx_advance(feed_parser, 0);
+						if (feed_parser->event == ATTR_START) {
+							attr_name = tx_advance(feed_parser, 1);
+							if (strcmp(attr_name, "href") == 0)
+								val = tx_advance(feed_parser, 1);
+							else
+								continue;
+						} else {
+							val = tx_advance(feed_parser, 1);
+						}
+						break;
+					}
+					if (attr_name != NULL) free(attr_name);
+					continue;
+				} else if (strcmp(tag_name, "enclosure") == 0) {
+					if (val != NULL) free(val);
+					const char *key_href[] = { "href", NULL };
+					tx_advance_until(feed_parser, ATTR_START, key_href);
+					val = tx_advance(feed_parser, 1);
+					break;
+				}
 			}
 			printf("%s\n", val);
-			free(val);
+			free(tag_name);
+			if (val != NULL) free(val);
 		}
 		tx_free(feed_parser);
 	} else {
 		error_occurred = 1;
 	}
+	if (title != NULL) free(title);
 	return error_occurred;
 }
 
